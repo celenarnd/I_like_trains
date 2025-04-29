@@ -82,9 +82,9 @@ class Game:
         self.last_delivery_times = {}  # {nickname: last_delivery_time}
         self.running = True
 
-        self.high_score_all_time = HighScore()
-        self.high_score_all_time.load() 
-        self.high_score_all_time.dump()
+        # self.high_score_all_time = HighScore()
+        # self.high_score_all_time.load() 
+        # self.high_score_all_time.dump()
 
         # Dirty flags for the game
         self._dirty = {
@@ -307,9 +307,15 @@ class Game:
 
     def handle_train_death(self, train_nicknames, death_reason):
         for nickname in train_nicknames:
-            self.send_cooldown(nickname, death_reason)
-        self.update_passengers_count()
-        
+            train = self.trains.get(nickname)
+            if train:
+                train.set_alive(False)
+                self.send_cooldown(nickname, death_reason)
+                self.update_passengers_count()
+                train.reset()
+            else:
+                logger.warning(f"Train {nickname} not found in kill method")
+
     def get_train_cooldown(self, nickname):
         """Get remaining cooldown time for a train"""
         if nickname in self.dead_trains:

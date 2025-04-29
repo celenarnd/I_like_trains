@@ -215,11 +215,6 @@ class Train:
         # Update position
         self.set_position(new_position)
 
-    def kill(self, train_nicknames, death_reason):
-        self.set_alive(False)
-        self.handle_death(train_nicknames, death_reason)
-        self.reset()
-
     def to_dict(self):
         """Convert train to dictionary, returning only modified data"""
         data = {}
@@ -297,7 +292,7 @@ class Train:
                 logger.info(collision_msg)
                 self.client_logger.info(collision_msg)
                 death_reason = "self_collision"
-                self.kill([self.nickname], death_reason)
+                self.handle_death([self.nickname], death_reason)
                 return True
             
         for train in all_trains.values():
@@ -312,7 +307,7 @@ class Train:
                 logger.info(collision_msg)
                 self.client_logger.info(collision_msg)
                 death_reason = "collision_with_train"
-                self.kill([self.nickname, train.nickname], death_reason)
+                self.handle_death([self.nickname, train.nickname], death_reason)
                 return True
 
             # Check collision with wagons
@@ -322,7 +317,7 @@ class Train:
                     logger.info(collision_msg)
                     self.client_logger.info(collision_msg)
                     death_reason = "collision_with_wagon"
-                    self.kill([self.nickname], death_reason)
+                    self.handle_death([self.nickname], death_reason)
                     return True
 
         return False
@@ -331,7 +326,7 @@ class Train:
         """Check if the train is out of the screen"""
         x, y = new_position
         if x < 0 or x >= screen_width or y < 0 or y >= screen_height:
-            self.kill([self.nickname], "out_of_bounds")
+            self.handle_death([self.nickname], "out_of_bounds")
             logger.debug(
                 f"Train {self.nickname} is dead: out of the screen. Coordinates: {new_position}"
             )

@@ -14,7 +14,8 @@ class DeliveryZone:
     DeliveryZones are placed randomly. Their size depends on the number of players.
     """
 
-    def __init__(self, game_width, game_height, cell_size, nb_players):
+    def __init__(self, game_width, game_height, cell_size, nb_players, random_gen=None):
+        self.random = random_gen if random_gen is not None else random
 
         # Calculate a factor based on square root for slower growth
         # Ensure nb_players is positive. Use sqrt + small linear term.
@@ -25,7 +26,7 @@ class DeliveryZone:
         height_with_factor = player_factor
 
         # Randomly choose which dimension gets an extra boost
-        random_increased_dimension = random.choice(["width", "height"])
+        random_increased_dimension = self.random.choice(["width", "height"])
         
         # Apply cell size scaling to final dimensions
         self.width = cell_size * (
@@ -38,7 +39,7 @@ class DeliveryZone:
         # Calculate and clamp the upper bound for x
         max_x_offset = game_width // cell_size - 1 - self.width // cell_size
         upper_bound_x = max(0, max_x_offset)
-        self.x = cell_size * random.randint(0, upper_bound_x)
+        self.x = cell_size * self.random.randint(0, upper_bound_x)
         
         # Calculate and clamp the upper bound for y
         max_y_offset = (
@@ -47,7 +48,7 @@ class DeliveryZone:
         # Ensure the upper bound is not negative
         upper_bound_y = max(0, max_y_offset)
 
-        self.y = cell_size * random.randint(0, upper_bound_y)
+        self.y = cell_size * self.random.randint(0, upper_bound_y)
 
         logger.debug(f"Delivery zone bounds: ({self.x}, {self.y}, {self.x + self.width}, {self.y + self.height})")
 

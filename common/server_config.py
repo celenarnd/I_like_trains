@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 from common.agent_config import AgentConfig
 
@@ -12,7 +13,12 @@ class ServerConfig(BaseModel):
     port: int = 5555
 
     # Numbers of trains in each room.
-    nb_clients_per_room: int = 2
+    # Can be an integer or the string "random".
+    # If "random", a random number between 2 and 4 will be selected.
+    nb_players_per_room: int | str = 2
+
+    # Seed for random number generation. If None, a random seed will be generated.
+    seed: Optional[int] = None
 
     # If True, allows multiple connections from the same IP address.
     allow_multiple_connections: bool = True
@@ -24,9 +30,18 @@ class ServerConfig(BaseModel):
     # How long to wait before considering a client as disconnected.
     client_timeout_seconds: float = 2.0
 
-    # Controls the game speed (in frames per second). A lower speed could be
-    # useful for debugging purpose.
+    # Controls the actual game speed (in frames per second).
+    # This value determines how fast the game runs in real-time.
+    # - Higher values make the game run faster than normal (e.g., 120 = 2x speed)
+    # - Lower values make the game run slower than normal (e.g., 30 = 0.5x speed)
+    # - Lower speeds can be useful for debugging purposes
     tick_rate: int = 60
+
+    # Flag to enable the simulation mode for grading. 
+    # In normal mode, we add all human players to the game first and then add bots if needed. 
+    # In grading mode, we add all configured agents to the game.
+    # If grading_mode is enabled, tick_rate is set to 10000 to run as fast as possible.
+    grading_mode: bool = False
 
     # Duration of each game.
     game_duration_seconds: int = 300  # 300 seconds == 5 minutes
@@ -50,4 +65,3 @@ class ServerConfig(BaseModel):
 
     # Local agents configuration, add or remove agents you want to evaluate as needed
     agents: list[AgentConfig] = []
-

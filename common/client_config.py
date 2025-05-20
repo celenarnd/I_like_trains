@@ -51,6 +51,3 @@ class ClientConfig(BaseModel):
     # If True, the client will generate a random suffix for the nickname, allows you
     # to have multiple clients with the same nickname in the config
     add_suffix_to_nickname: bool = False
-
-    # Controls the refresh rate of the game (in frames per second).
-    tick_rate: int = 60

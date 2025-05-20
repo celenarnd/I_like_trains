@@ -3,9 +3,9 @@ Train class for the game "I Like Trains"
 """
 
 import logging
-import time
 
 from common.move import Move
+from common.constants import REFERENCE_TICK_RATE
 
 # Configure logging
 logging.basicConfig(
@@ -31,7 +31,7 @@ BOOST_INTENSITY = 3  # Intensity of speed boost
 
 
 class Train:
-    def __init__(self, x, y, nickname, color, handle_train_death, tick_rate):
+    def __init__(self, x, y, nickname, color, handle_train_death, tick_rate, reference_tick_rate):
         logger.debug(f"Creating train {nickname} at position {x}, {y}")
         self.position = (x, y)
         self.wagons = []
@@ -49,6 +49,7 @@ class Train:
         self.last_position = (x, y)
 
         self.tick_rate = tick_rate
+        self.reference_tick_rate = reference_tick_rate
         # Dirty flags to track modifications
         self._dirty = {
             "position": True,
@@ -64,7 +65,8 @@ class Train:
         self.speed_boost_active = False
         self.speed_boost_timer = 0
         self.boost_cooldown_active = False
-        self.start_cooldown_time = 0
+        self.start_boost_cooldown_tick = 0
+        self.boost_cooldown_ticks = 0
         self.normal_speed = INITIAL_SPEED  # Store normal speed for after boost ends
 
     def get_position(self):
@@ -83,15 +85,16 @@ class Train:
         if not self.is_opposite_direction(new_direction):
             self.new_direction = new_direction
 
-    def update(self, trains, screen_width, screen_height, cell_size):
+    def update(self, trains, screen_width, screen_height, cell_size, current_tick):
         """Update the train position"""
+        self.current_tick = current_tick
         if not self.alive:
             return
 
         # Manage speed boost timer
         if self.speed_boost_active:
             self.speed_boost_timer -= (
-                1 / self.tick_rate
+                1 / self.reference_tick_rate
             )  # Decrement by seconds (assuming self.tick_rate ticks per second)
             if self.speed_boost_timer <= 0:
                 # Reset speed boost
@@ -101,21 +104,24 @@ class Train:
 
         # Manage boost cooldown timer
         if self.boost_cooldown_active:
-            current_time = time.time()
-            elapsed_time = current_time - self.start_cooldown_time
-            if elapsed_time >= BOOST_COOLDOWN_DURATION + BOOST_DURATION:
+            ticks_elapsed = self.current_tick - self.start_boost_cooldown_tick
+            
+            required_ticks = int((BOOST_COOLDOWN_DURATION + BOOST_DURATION) * self.reference_tick_rate)
+            
+            if ticks_elapsed >= required_ticks:
                 logger.debug(f"Resetting cooldown for train {self.nickname}")
                 # Reset cooldown
                 self.boost_cooldown_active = False
                 self._dirty["boost_cooldown_active"] = True
                 
-        # Increment movement timer
+        # Increment movement timer - with fixed increment to ensure consistent speed across tickrates
         self.move_timer += 1
 
+        # Simple threshold based on speed only - independent of tickrate
+        move_threshold = REFERENCE_TICK_RATE / self.speed
+        
         # Check if it's time to move
-        if (
-            self.move_timer >= self.tick_rate / self.speed
-        ):  # self.tick_rate ticks per second
+        if self.move_timer >= move_threshold:
             self.move_timer = 0
             self.set_direction(self.new_direction)
             self.move(trains, screen_width, screen_height, cell_size)
@@ -169,12 +175,23 @@ class Train:
             # Start cooldown
             logger.debug(f"Starting cooldown for train {self.nickname}")
             self.boost_cooldown_active = True
-            self.start_cooldown_time = time.time()
+            self.start_boost_cooldown_tick = self.current_tick
             self._dirty["boost_cooldown_active"] = True
 
             return last_wagon_pos
         else:
             return None
+
+    def get_boost_cooldown_time(self):
+        if self.boost_cooldown_active:
+            ticks_elapsed = self.current_tick - self.start_boost_cooldown_tick
+            return max(0, self.get_boost_cooldown_ticks() - ticks_elapsed)
+        else:
+            logger.warning(f"Train {self.nickname} not found in train_boost_cooldown_ticks")
+            return 0
+
+    def get_boost_cooldown_ticks(self):
+        return int(BOOST_COOLDOWN_DURATION * self.reference_tick_rate)
 
     def update_speed(self):
         self.speed = INITIAL_SPEED * SPEED_DECREMENT_COEFFICIENT ** len(self.wagons)
@@ -184,7 +201,7 @@ class Train:
         """Regular interval movement"""
         if not self.alive:
             return
-
+        
         # Save the last position before moving
         if isinstance(self.position, tuple) and len(self.position) == 2:
             self.last_position = self.position
@@ -199,10 +216,6 @@ class Train:
         new_y = self.position[1] + self.direction[1] * cell_size
         new_position = (new_x, new_y)
 
-        # Check collisions and bounds
-        self.check_collisions_with_trains(new_position, trains)
-        self.check_out_of_bounds(new_position, screen_width, screen_height)
-
         if not self.alive:
             return
 
@@ -211,16 +224,23 @@ class Train:
             self.wagons.insert(0, self.position)
             self.wagons.pop()
             self._dirty["wagons"] = True
-
+            
         # Update position
         self.set_position(new_position)
 
+        # Check collisions and bounds
+        self.check_collisions_with_trains(new_position, trains)
+        self.check_out_of_bounds(new_position, screen_width, screen_height)
+        
     def to_dict(self):
         """Convert train to dictionary, returning only modified data"""
         data = {}
         if self._dirty["position"]:
             data["position"] = self.position
             self._dirty["position"] = False
+            # Always include direction with position updates to ensure client stays in sync
+            data["direction"] = self.direction
+            self._dirty["direction"] = False
         if self._dirty["wagons"]:
             # Verify that all wagons have valid positions
             valid_wagons = []
@@ -255,13 +275,13 @@ class Train:
             data["boost_cooldown_active"] = self.boost_cooldown_active
             self._dirty["boost_cooldown_active"] = False
         return data
-
+        
     def set_position(self, new_position):
         """Update train position"""
         if self.position != new_position:
             self.position = new_position
             self._dirty["position"] = True
-
+            
     def set_direction(self, direction):
         """Change train direction"""
         if self.direction != direction:

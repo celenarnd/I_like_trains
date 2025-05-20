@@ -46,12 +46,6 @@ class NetworkManager:
             # Store server address for sending
             self.server_addr = (self.host, self.port)
 
-            # Log successful connection with local client port information
-            local_ip, local_port = self.socket.getsockname()
-            logger.info(
-                f"Successfully connected to server at {self.host}:{self.port} from local {local_ip}:{local_port}"
-            )
-
             self.last_ping_time = time.time()
 
             # Start receive thread
@@ -70,17 +64,12 @@ class NetworkManager:
         if stop_client:
             self.client.running = False
 
-            # Afficher un message d'erreur si la déconnexion est due à un timeout du serveur
-            # On laisse le client gérer l'affichage du message et la fermeture
             logger.warning("Server disconnection detected. Stopping client.")
 
-        if self.socket:
-            # Envoyer un message à nous-même pour débloquer le recvfrom
+        if self.socket and self.socket is not None:
             if hasattr(self, "server_addr"):
                 try:
-                    # Obtenir l'adresse locale du socket
                     local_addr = self.socket.getsockname()
-                    # Envoyer un message vide à nous-même pour débloquer le recvfrom
                     dummy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     dummy_socket.sendto(b"", local_addr)
                     dummy_socket.close()
@@ -222,7 +211,7 @@ class NetworkManager:
                                 )
                             else:
                                 logger.error(
-                                    f"Name available: {message_data['available']}"
+                                    f"Name available: {message_data['available']}. Reason: {message_data.get('reason', 'Unknown reason')}."
                                 )
                             self.client.name_check_result = message_data.get(
                                 "available", False
@@ -288,7 +277,10 @@ class NetworkManager:
                     except json.JSONDecodeError:
                         logger.error(f"Invalid JSON received: {message}")
                     except Exception as e:
-                        logger.error(f"Error processing message: {e}")
+                        import traceback
+                        logger.error(f"Error processing message: {message!r}")
+                        logger.error(f"Exception details: {e}")
+                        logger.debug(f"Exception traceback: {traceback.format_exc()}")
 
             except socket.timeout:
                 # Don't log timeout errors at all to avoid spam

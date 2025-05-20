@@ -34,7 +34,7 @@ Set up the game mode you want to play, your sciper, a nickname and the agent fil
 There cannot be two agents with the same nickname on the server. The length of the nickname should be between 0 and 16 characters.
 
 For the observer mode, you don't need to specify information. If you want to join a room as an observer to watch some of your agents competing against each other, 
-set up a list containing the names and agent file names in the `agents` list in `config.json` in the `server` section. You can add as many agents as you want. Make sure that the server you create has enough empty slots for them (the `nb_clients_per_room` parameter).
+set up a list containing the names and agent file names in the `agents` list in `config.json` in the `server` section. You can add as many agents as you want. Make sure that the server you create has enough empty slots for them (the `nb_players_per_room` parameter).
 
 Example configuration in `config.json`:
 ```json

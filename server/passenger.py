@@ -1,4 +1,3 @@
-import random
 import logging
 
 # Configure logging
@@ -10,7 +9,7 @@ class Passenger:
     def __init__(self, game):
         self.game = game
         self.position = self.get_safe_spawn_position()
-        self.value = random.randint(1, self.game.config.max_passengers)
+        self.value = self.game.random.randint(1, self.game.config.max_passengers)
 
     def respawn(self):
         """
@@ -18,7 +17,7 @@ class Passenger:
         """
         new_pos = self.get_safe_spawn_position()
         self.position = new_pos
-        self.value = random.randint(1, self.game.config.max_passengers)
+        self.value = self.game.random.randint(1, self.game.config.max_passengers)
         self.game._dirty["passengers"] = True
 
     def get_safe_spawn_position(self):
@@ -32,11 +31,11 @@ class Passenger:
 
         for _ in range(max_attempts):
             x = (
-                random.randint(0, (self.game.game_width // cell_size) - 1)
+                self.game.random.randint(0, (self.game.game_width // cell_size) - 1)
                 * cell_size
             )
             y = (
-                random.randint(0, (self.game.game_height // cell_size) - 1)
+                self.game.random.randint(0, (self.game.game_height // cell_size) - 1)
                 * cell_size
             )
 

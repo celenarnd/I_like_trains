@@ -16,7 +16,7 @@
     "server": {
         "host": "0.0.0.0",
         "port": 5555,
-        "nb_clients_per_room": 1,
+        "nb_players_per_room": 1,
         "waiting_time_before_bots_seconds": 5,
         "agents": [
             {

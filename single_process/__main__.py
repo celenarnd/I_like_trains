@@ -21,7 +21,7 @@ def main():
     # Enables setting breakpoints and resuming the runtime without considering the client as disconnected
     config.server.client_timeout_seconds = 86400  # 86400 seconds == 1 day
     config.client.server_timeout_seconds = 86400  # 86400 seconds == 1 day
-    config.server.waiting_time_before_bots_seconds = 0
+
     Server(config)
 
     client = Client(config)

@@ -93,6 +93,13 @@ class GameState:
             self.client.best_scores = data["best_scores"]
             if self.game_mode == GameMode.AGENT and self.client.agent is not None:
                 self.client.agent.best_scores = self.client.best_scores
+                
+        # Récupérer le temps restant s'il est présent dans les données
+        if "remaining_time" in data:
+            self.client.remaining_game_time = data["remaining_time"]
+            # logger.info(f"Remaining time updated: {self.client.remaining_game_time}")
+            # if self.game_mode == GameMode.AGENT and self.client.agent is not None:
+            #     self.client.agent.remaining_game_time = self.client.remaining_game_time
 
         # Update the agent's state
         if self.game_mode == GameMode.AGENT and self.client.agent is not None:
@@ -109,9 +116,11 @@ class GameState:
                 self.client.agent.game_height = self.client.game_height
             if self.client.agent.delivery_zone is None:
                 self.client.agent.delivery_zone = self.client.delivery_zone
-
-            # Update agent state only if train is alive
-            if not self.client.is_dead:
+            
+            # Check if the train is in the client's stored trains collection
+            train_exists = self.client.nickname in self.client.trains
+                            
+            if not self.client.is_dead and train_exists:
                 self.client.agent.update_agent()
 
     def handle_leaderboard_data(self, data):

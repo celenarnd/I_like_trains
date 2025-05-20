@@ -22,6 +22,7 @@ You can check the data available in the client by using the logger:
 self.logger.debug(self.all_trains)
 self.logger.debug(self.all_passengers)
 self.logger.debug(self.delivery_zones)
+self.logger.debug(self.best_scores)
 ```
 
 or by directly checking what is returned by the `to_dict()` method in each class. For example to check the train's data format, check the method `to_dict()` in `server/train.py`. For the passenger, check `server/passenger.py`. Etc.

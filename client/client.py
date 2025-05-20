@@ -13,6 +13,7 @@ from client.game_state import GameState
 
 from common.config import Config
 from common.client_config import GameMode
+from common.constants import REFERENCE_TICK_RATE
 
 
 # Configure logging
@@ -35,8 +36,10 @@ class Client:
         # If we launch an observer, we want the host to be local_host, otherwise
         if self.game_mode == GameMode.OBSERVER:
             host = "localhost"
+            logger.info("Observer mode: connecting to localhost")
         else:
             host = self.config.host
+            logger.info(f"Client mode: connecting to {host}")
 
         # Initialize state variables
         self.running = True
@@ -143,7 +146,7 @@ class Client:
 
                 # Add parent directory to Python path to allow importing agents package
                 module = importlib.import_module(module_path)
-                self.agent = module.Agent(self.nickname, self.network)
+                self.agent = module.Agent(self.nickname, self.network, timeout=1/REFERENCE_TICK_RATE)
 
         self.ping_response_received = False
         self.server_disconnected = False
@@ -183,7 +186,7 @@ class Client:
                 if self.network.connect():
                     # Verify connection by attempting to receive data
                     if self.network.verify_connection():
-                        logger.info("Connected to server successfully")
+                        logger.info(f"Connected to server at {self.config.host}:{self.config.port}")
                         connection_successful = True
                         break
                     else:
@@ -231,7 +234,7 @@ class Client:
         clock = pygame.time.Clock()
         while self.running:
             self.update()
-            clock.tick(self.config.tick_rate)
+            clock.tick(REFERENCE_TICK_RATE)
 
         # Close connection
         self.network.disconnect()
@@ -295,16 +298,6 @@ class Client:
         self.game_start_time = time.time()  # Use client's time for consistency
 
         logger.info(f"Game lifetime set to {self.game_life_time} seconds")
-
-    def get_remaining_time(self):
-        """Calculate remaining game time in seconds"""
-        if not hasattr(self, "game_life_time") or not hasattr(self, "game_start_time"):
-            return None
-
-        elapsed = time.time() - self.game_start_time
-        remaining = max(0, self.game_life_time - elapsed)
-
-        return remaining
 
     def handle_server_disconnection(self):
         """Handle server disconnection gracefully"""
